@@ -4,7 +4,7 @@ const socketIO = require('socket.io');
 const http = require('http');
 
 const {generateMessage, generateLocationMessage} = require('./utils/message');
-const {isValidJoin} = require('./utils/validation');
+const {isValidString} = require('./utils/validation');
 const {Users} = require('./utils/users');
 
 const publicPath = path.join(__dirname, '../public');
@@ -19,7 +19,7 @@ app.use(express.static(publicPath));
 
 io.on('connection', (socket) => {
 	socket.on('join', (params, callback) => {
-		if (!isValidJoin(params.name) || !isValidJoin(params.room)) {
+		if (!isValidString(params.name) || !isValidString(params.room)) {
 			return callback('Name or room name is invalid');
 		}	
 
@@ -32,17 +32,24 @@ io.on('connection', (socket) => {
 			generateMessage('Admin', 'Welcome to the chat app'));
 		socket.broadcast.to(params.room).emit('newMessage', 
 			generateMessage('Admin', `${params.name} has joined`));
-
-		callback();
 	})
 
 	socket.on('createMessage', (msg, callback) => {
-		io.emit('newMessage', generateMessage(msg.from, msg.text));
+		var user = users.getUser(socket.id);
+
+		if (user && isValidString(msg.text)) {
+			io.to(user.room).emit('newMessage', generateMessage(user.name, msg.text));
+		}
+
 		callback();
 	})
 
 	socket.on('createLocationMessage', (location) => {
-		io.emit('newLocationMessage', generateLocationMessage('Admin', location.lat, location.lon))
+		var user = users.getUser(socket.id);
+
+		if (user) {
+			io.to(user.room).emit('newLocationMessage', generateLocationMessage(user.name, location.lat, location.lon))
+		}
 	})
 
 	socket.on('disconnect', () => {

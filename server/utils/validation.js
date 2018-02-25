@@ -1,7 +1,7 @@
-function isValidJoin(str) {
+function isValidString(str) {
 	return typeof str === 'string' && str.trim().length > 0;
 }
 
 module.exports = {
-	isValidJoin
+	isValidString
 };
